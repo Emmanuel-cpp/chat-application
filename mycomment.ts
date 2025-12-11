@@ -4,6 +4,7 @@ import "remixicon/fonts/remixicon.css";
 @customElement("my-comment")
 export class MyComment extends LitElement {
   @property({ type: String }) commentInput = "";
+  @property({ type: Number }) count = 0;
   @property({ type: Array }) comments: {
     id: number;
     name: String;
@@ -27,6 +28,8 @@ body{
     width:100VW;
     font-family: Roboto; 
     background-color:blue;
+    display:flex;
+    background-color:blue;
   }
 p{
   color:black;
@@ -49,6 +52,21 @@ h3{
     margin-top:0%;
     color:black;
     padding-left:2px;
+}
+dialog{
+    background-color:  #d3d8daff;
+    border:1px solid  #bac0c2ff;
+    z-index: 2;//help stop overlapping of elements, higher number of z-index means more the element will apppear first.
+    //  not that all elements must be positioned, otherwise, z-index will not work
+    width: 80vw;
+    max-width: 500px;
+    height:50vh;
+    position: fixed;
+    /* Center the modal on the screen */
+    top: 40%;
+    left: 30%;
+    transform: translate(-50%, -50%);
+    border-radius:5px; 
 }
 #line{
     background-color: grey; 
@@ -84,7 +102,6 @@ h3{
     width: 100%; 
     box-sizing: border-box;   
     height: 40px;
-    aligh-item:left;
     background-color:white;
     color:black;
     /*positioning the sendBtn button*/
@@ -93,6 +110,7 @@ h3{
     align-items: left;
     justify-content: space-between;
     margin-top: 0%;
+    overflow-y: auto;
 }
 .commentInputContainer{
     position: relative; 
@@ -135,6 +153,7 @@ h3{
 .commentText {
     margin-bottom:3px;
     margin-top:-5px;
+   
 }
 .commentMeta{
 opacity:0.8;
@@ -268,9 +287,9 @@ opacity:0.8;
     box-shadow: 0 0 1px rgba(0, 0, 0, 0.5);
     border-radius:8px;
 }
-.quoteToText{
+.quotedText{
    color:black;
-   background-color:   #caeaf566;
+   background-color:   #d0e2e9a3;
    border-radius: 8px;
    padding:8px;
    margin-top:10px;
@@ -287,20 +306,6 @@ border-radius: 12px;
     margin: 0; 
     cursor: pointer; 
 }
-.modal{
-    background-color:  #d3d8daff;
-    border:1px solid  #bac0c2ff;
-    z-index: 2;//help stop overlapping of elements, higher number of z-index means more the element will apppear first.
-    //  not that all elements must be positioned, otherwise, z-index will not work
-    width: 80vw;
-    max-width: 500px;
-    height:50vh;
-    position: fixed;
-    /* Center the modal on the screen */
-    top: 40%;
-    left: 30%;
-    transform: translate(-50%, -50%); 
-}
 .referenceTextInDialog{
   margin-bottom: 1px;
 }
@@ -315,7 +320,7 @@ border-radius: 12px;
     border-radius: 5px;
     border: 1px solid #d3d8daff;
     box-shadow: 0 0 10px rgba(-1, -1, -1, 0.1);
-    width: 100%; 
+    max-width:70 %; 
     box-sizing: border-box;   
     height: 40px;
     aligh-item:left;
@@ -326,12 +331,15 @@ border-radius: 12px;
 .modalHeader{
     margin-top: 2px;
     magin-buttom: 2px;
-   left:90px;
-   bottom:3px;
+    left:90px;
+    bottom:3px;
 }
-dialog:backdrop {
-background: rgba(0, 0, 0, 0.5);
-backdrop-filter: blur(5px) brightness(80%);
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px) brightness(80%);
+}
+.modalFooter{
+    margin-top:200px;
 }
   `;
 
@@ -340,20 +348,37 @@ backdrop-filter: blur(5px) brightness(80%);
     this.commentInput = event.target.value;
   }
   //function for displaying input
-  commentSubmit() {
-    if (this.commentInput.trim() !== "") {
-      // create new object to capture text and current time
-      const newComment = {
-        id: this.comments.length + 1,
-        text: this.commentInput.trim(),
-        timeStamp: new Date(), //capture date
-        name: "Mupotola Memory",
-        parentId: this.replyingToId || undefined,
-      };
-      this.comments = [newComment, ...this.comments];
-      this.commentInput = ""; // clear comment box when comment is submit
-      this.cancelReply();
-    }
+  async commentSubmit() {
+        if (this.commentInput.trim() !== "") {
+          const userText = this.commentInput.trim();
+
+        //send to python AI server
+          const aiResponse = await fetch("http://localhost:5000/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              message: userText
+            })
+          });
+
+          const data = await aiResponse.json();
+          const aiText = data.reply;  
+          
+          // AI comment reply
+          const newComment = {
+            id: this.comments.length + 1,
+            text: aiText,               
+            timeStamp: new Date(),
+            name: "AI Assistant",       
+            parentId: this.replyingToId || undefined,
+          };
+
+          this.comments = [newComment, ...this.comments];
+          this.commentInput = "";
+          this.cancelReply();
+        }
   }
   formatDate(date: Date): string {
     const day = date.getDate().toString().padStart(2, "0");
@@ -389,19 +414,34 @@ backdrop-filter: blur(5px) brightness(80%);
   openModel() {
     this.isModalOpen = !this.isModalOpen;
   }
-
-  replyInput(event: { target: { value: string } }) {
-    this.replytoInput = event.target.value;
+  updated(changedProperties: Map<string | number | symbol, unknown>) {
+    if (changedProperties.has("isModalOpen")) {
+      const dialog = this.shadowRoot?.getElementById(
+        "replyDialog"
+      ) as HTMLDialogElement | null;
+      if (dialog) {
+        if (this.isModalOpen) {
+          // *** FIX 1: Use showModal() to activate ::backdrop ***
+          dialog.showModal();
+        } else {
+          dialog.close();
+        }
+      }
+    }
   }
+  // functions for displaying emoji
+  increment() {
+    this.count++;
+  }
+ 
   render() {
     return html`
         <div class="cardContainer">
           <!--dialog box here-->
-          <div class="dialogueBox">
             ${
               this.isModalOpen
                 ? html`
-                    <dialog class="modal" ?open="${this.isModalOpen}">
+                    <dialog id="replyDialog">
                       <div class="modalContent">
                         <div class="modalHeader">
                           <p>Replying to:</p>
@@ -412,15 +452,14 @@ backdrop-filter: blur(5px) brightness(80%);
                             <p class="quotedText">${this.quotedCommentText}</p>
                           </div>
                           <!-- Use the existing input function for the reply input -->
-                          <input
-                            id="replyInput"
+                          <textarea
                             class="replyInput"
                             .value="${this.commentInput}"
                             @input="${this.inputCmt}"
                             placeholder="Write your reply..."
-                          />
+                          ></textarea>
                         </div>
-                        <div class="modal-footer">
+                        <div class="modalFooter">
                           <button
                             type="button"
                             class="replyToTextBtn"
@@ -442,8 +481,6 @@ backdrop-filter: blur(5px) brightness(80%);
                   `
                 : ""
             }
-          </div>
-          <br />
           <!-- End of modal dialogue block -->
           <div class="commentHeader">
             <h3>
@@ -469,41 +506,38 @@ backdrop-filter: blur(5px) brightness(80%);
             !this.isCollapsed
               ? html`
                   <div class="commentForm">
-                    <div class="content">
-                      ${this.replyingToId !== null
-                        ? html` <div class="replyToQuote">
-                            <blockquote class="quoteToText">
-                              ${this.quotedCommentText}
-                            </blockquote>
-                            <button
-                              type="button"
-                              @click="${this.cancelReply}"
-                              class="cancelReplyBtn"
-                            >
-                              &#x2715;
-                            </button>
-                          </div>`
-                        : html``}
-                      <div class="commentInputContainer">
-                        <input
-                          id="formInput"
-                          class="longCommentBox"
-                          type="text"
-                          .value="${this.commentInput}"
-                          @input=${this.inputCmt}
-                          placeholder="comment"
-                        />
-                        />
-                        <button
-                          type="button"
-                          id="sendButton"
-                          aria-label="Search"
-                          @click=${this.commentSubmit}
-                        >
-                          send
-                          <span> <i class="ri-arrow-up-s-line"></i></span>
-                        </button>
-                      </div>
+                    ${this.replyingToId !== null
+                      ? html` <div class="replyToQuote">
+                          <!-- remove this part and clear background instead <blockquote class="quoteToText">
+                            ${this.quotedCommentText}
+                          </blockquote>-->
+                          <!-- remove this button as well <button
+                            type="button"
+                            @click="${this.cancelReply}"
+                            class="cancelReplyBtn",
+                          >
+                            &#x2715;
+                          </button>-->
+                        </div>`
+                      : html``}
+                    <div class="commentInputContainer">
+                      <input
+                        id="formInput"
+                        class="longCommentBox"
+                        type="text"
+                        .value="${this.commentInput}"
+                        @input=${this.inputCmt}
+                        placeholder="comment"
+                      />
+                      />
+                      <button
+                        type="button"
+                        id="sendButton"
+                        aria-label="Search"
+                        @click=${this.commentSubmit}
+                      >
+                        send
+                      </button>
                     </div>
                     <ul>
                       ${this.comments.map(
@@ -550,7 +584,11 @@ backdrop-filter: blur(5px) brightness(80%);
                                     : html``}
                                 </div>
                                 <p class="commentText">${comment.text}</p>
-                                <button type="button" id="emojis">😊</button>
+                                <button
+                                  typ="button"
+                                  id="emojis"
+                                >😀
+                                </button>
                                 <button
                                   type="button"
                                   id="replyBtn"
