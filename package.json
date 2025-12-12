@@ -1,0 +1,24 @@
+{
+  "name": "my-lit-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-brands-svg-icons": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@weavedev/lit-fontawesome": "^0.3.2",
+    "fontawesome": "^5.6.3",
+    "lit": "^3.3.1",
+    "remixicon": "^4.7.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "^7.2.7"
+  }
+}

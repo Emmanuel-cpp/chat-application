@@ -36,9 +36,13 @@ def generateResponse(prompt:str):
                 temperature=2,
                 top_k=4,
                 top_p=0.4,
-                system_instruction="Use zambian slangs like laka to greet, and others that you know of"
+                system_instruction="Response must be in text only and not markdown, do not include ** or # in the response"
             )           
         )
+        context.append({
+             "role":"model",
+             "content":response.text 
+        })
         return response.text 
 
 class APIHandler(BaseHTTPRequestHandler):

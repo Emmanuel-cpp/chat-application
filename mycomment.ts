@@ -9,6 +9,7 @@ export class MyComment extends LitElement {
     id: number;
     name: String;
     text: String;
+    userQuestion: String;
     timeStamp: Date;
     parentId: number;
   }[] = [];
@@ -27,18 +28,17 @@ export class MyComment extends LitElement {
 body{
     width:100VW;
     font-family: Roboto; 
-    background-color:blue;
+    background-color:;
     display:flex;
-    background-color:blue;
   }
 p{
-  color:black;
-  margin-bottom: 0; /* Add this line to remove space below the comment text */
-  margin-top:0:
-  padding:5px;/*
-  margin-top:8px;
-  margin-bottom:-4px ;
-  margin-top:-5px;*/
+   color:black;
+   margin-bottom: 0; /* Add this line to remove space below the comment text */
+   margin-top:0:
+   padding:5px;/*
+   margin-top:8px;
+   margin-bottom:-4px ;
+   margin-top:-5px;*/
 }
 ul{
     margin-left:1%; 
@@ -69,7 +69,7 @@ dialog{
     border-radius:5px; 
 }
 #line{
-    background-color: grey; 
+    width:100%;
     color:  #ffffff;
     opacity: 0.2;
 }
@@ -118,15 +118,11 @@ dialog{
     align-items: center; /* Vertically centers content if needed */
     margin-bottom: 5px;
 }
-/*.content{
-   margin-right:1% ;
-   margin-left:1% ;
-}*/
-#time2{
+.time2{
     color: #5d5c5cff;
     margin-top:0;
 }
-#writer{
+.textName{
     color: #0fa6ddff;
     font-weight:600;
 }
@@ -153,7 +149,7 @@ dialog{
 .commentText {
     margin-bottom:3px;
     margin-top:-5px;
-   
+    color:black;
 }
 .commentMeta{
 opacity:0.8;
@@ -174,12 +170,7 @@ opacity:0.8;
    border: 3px solid #d3d8daff;
 }
 #replyBtn{
-  border-radius: 12px;
- /* position button - REMOVE THESE LINES */
-    /* position: absolute; */ 
-    /* left: 60px; */ 
-    /* top: 107px; */ 
-    /* transform: translateY(-50%); */ 
+    border-radius: 12px;
     padding: 5px 10px;
     margin: 0; 
     cursor: pointer; 
@@ -198,9 +189,10 @@ opacity:0.8;
    border-radius:5px;
    background-color:black;
    padding:5px;
+   color:white;
 /* position button*/
     position: absolute; 
-    right: 32px; 
+    right: 10px; 
     top: 50%; 
     transform: translateY(-50%); 
     padding: 5px 10px;
@@ -226,7 +218,7 @@ opacity:0.8;
     margin-left:2%;
      /* position button*/
     position: absolute; 
-    right: 20px; 
+    right: 2px; 
     top: 50%; 
     transform: translateY(-50%); 
     padding: 5px 10px;
@@ -242,19 +234,6 @@ opacity:0.8;
 #sendButton:active{
     color:black;
 }
-#emojis{
-   border-radius: 12px;
-}
-#emojis:hover{
-    color:aliceblue;
-    background-color:grey;
-    border:2px solid black;
-    box-shadow: 0 0 16px rgba(0, 0, 0, 0.5);
-}
-#emojis:active{
-    color:black;
-    background-color:darkgrey;
-} 
 .replyToTextBtn{
     border-radius:5px;
     font-size: 17px ;
@@ -295,10 +274,10 @@ opacity:0.8;
    margin-top:10px;
 }
 .originalAuther{
- margin-top:1px;
+   margin-top:1px;
 }
 .replyToReference{
-margin:6px;
+   margin:6px;
 }
 .cancelReplyBtn{
 border-radius: 12px;
@@ -307,13 +286,13 @@ border-radius: 12px;
     cursor: pointer; 
 }
 .referenceTextInDialog{
-  margin-bottom: 1px;
+   margin-bottom: 1px;
 }
 .modalBody {
-  display: flex;
-  flex-direction: column; /* Stacks children vertically */
-  /* Add vertical space between children */
-  gap: 15px; 
+   display: flex;
+   flex-direction: column; /* Stacks children vertically */
+   /* Add vertical space between children */
+   gap: 15px; 
 }
 .replyInput{
     padding: 8px;
@@ -335,11 +314,23 @@ border-radius: 12px;
     bottom:3px;
 }
 dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(8px) brightness(80%);
+   background: rgba(0, 0, 0, 0.5);
+   backdrop-filter: blur(8px) brightness(80%);
 }
 .modalFooter{
-    margin-top:200px;
+    margin-top:20px;
+}
+.questionAsked{
+    button:4px;
+    color:black;
+}
+.questionSection{
+    background-color: #91bbb543;
+    box-size:border-box;
+    border-radius:4px;
+}
+.textForAi{
+color:black;
 }
   `;
 
@@ -349,36 +340,37 @@ dialog::backdrop {
   }
   //function for displaying input
   async commentSubmit() {
-        if (this.commentInput.trim() !== "") {
-          const userText = this.commentInput.trim();
+    if (this.commentInput.trim() !== "") {
+      const userText = this.commentInput.trim();
 
-        //send to python AI server
-          const aiResponse = await fetch("http://localhost:5000/", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-              message: userText
-            })
-          });
+      //send to python AI server
+      const aiResponse = await fetch("http://localhost:5000/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: userText,
+        }),
+      });
 
-          const data = await aiResponse.json();
-          const aiText = data.reply;  
-          
-          // AI comment reply
-          const newComment = {
-            id: this.comments.length + 1,
-            text: aiText,               
-            timeStamp: new Date(),
-            name: "AI Assistant",       
-            parentId: this.replyingToId || undefined,
-          };
+      const data = await aiResponse.json();
+      const aiText = data.reply;
 
-          this.comments = [newComment, ...this.comments];
-          this.commentInput = "";
-          this.cancelReply();
-        }
+      // AI comment reply
+      const newComment = {
+        id: this.comments.length + 1,
+        text: aiText,
+        userQuestion: userText,
+        timeStamp: new Date(),
+        name: "AI Assistant",
+        parentId: this.replyingToId || undefined,
+      };
+
+      this.comments = [newComment, ...this.comments];
+      this.commentInput = "";
+      this.cancelReply();
+    }
   }
   formatDate(date: Date): string {
     const day = date.getDate().toString().padStart(2, "0");
@@ -433,7 +425,6 @@ dialog::backdrop {
   increment() {
     this.count++;
   }
- 
   render() {
     return html`
         <div class="cardContainer">
@@ -471,7 +462,7 @@ dialog::backdrop {
                           <button
                             type="button"
                             class="replyToTextBtn"
-                            @click="${this.commentSubmit}"
+                            @click=${this.commentSubmit}
                           >
                             Submit Reply
                           </button>
@@ -507,18 +498,7 @@ dialog::backdrop {
               ? html`
                   <div class="commentForm">
                     ${this.replyingToId !== null
-                      ? html` <div class="replyToQuote">
-                          <!-- remove this part and clear background instead <blockquote class="quoteToText">
-                            ${this.quotedCommentText}
-                          </blockquote>-->
-                          <!-- remove this button as well <button
-                            type="button"
-                            @click="${this.cancelReply}"
-                            class="cancelReplyBtn",
-                          >
-                            &#x2715;
-                          </button>-->
-                        </div>`
+                      ? html` <div class="replyToQuote"></div>`
                       : html``}
                     <div class="commentInputContainer">
                       <input
@@ -528,7 +508,6 @@ dialog::backdrop {
                         .value="${this.commentInput}"
                         @input=${this.inputCmt}
                         placeholder="comment"
-                      />
                       />
                       <button
                         type="button"
@@ -545,23 +524,68 @@ dialog::backdrop {
                           <li class="commentItem">
                             <div class="commentBackground">
                               <div class="commentMeta">
-                                <small id="time2">
-                                  <!--add time and date -->
-                                  <span id="writer">${comment.name}</span>
-                                  <span class="separator">&bullet;</span>
-                                  <span
-                                    >${this.formatDate(comment.timeStamp)}</span
-                                  >
-                                  <span class="separator">&bullet;</span>
-                                  <span
-                                    >${this.formatTime(comment.timeStamp)}</span
-                                  >
-                                </small>
-                                <div class="replyToReference">
-                                  ${comment.parentId
+                                ${
+                                  comment.parentId
                                     ? html` <div class="replyIndicator">
-                                  👩<small id="time2">
-                                  <!--remember to add name, time and date as did on when sending the message-->
+                                        <small id="time2">
+                                          <!--remember to add name, time and date as did on when sending the message-->
+                                          <span class="textName"
+                                            >${comment.name}</span
+                                          >
+                                          <span class="separator"
+                                            >&bullet;</span
+                                          >
+                                          <span>
+                                            ${this.formatDate(
+                                              comment.timeStamp
+                                            )}</span
+                                          >
+                                          <span class="separator"
+                                            >&bullet;</span
+                                          >
+                                          <span
+                                            >${this.formatTime(
+                                              comment.timeStamp
+                                            )}</span
+                                          >
+                                        </small>
+                                        <div class="originalAuther">
+                                          ${this.comments.find(
+                                            (c) => c.id === comment.parentId
+                                          )?.text || "Comment"}
+                                        </div>
+                                      </div>`
+                                    : html``
+                                }
+                                <div class = "questionSection">
+                                <p>  
+                                  <small class="time2">
+                                    <!--add time and date -->
+                                    <span
+                                      >${this.formatDate(
+                                        comment.timeStamp
+                                      )}</span
+                                    >
+                                    <span class="separator">&bullet;</span>
+                                    <span
+                                      >${this.formatTime(
+                                        comment.timeStamp
+                                      )}</span
+                                    >
+                                  </small>
+                                  <div class = "questionAsked">
+                                  🧑‍💻${comment.userQuestion}
+                                  </div>
+                                </p>
+                                </div>
+                                <p class="commentText">
+                                  <small id="time2">
+                                    <!--remember to add name, time and date as did on when sending the message-->
+                                    <span class="textName"
+                                      >${comment.name}</span
+                                    >
+                                    <span class="separator">&bullet;</span>
+                                    <span>
                                       ${this.formatDate(
                                         comment.timeStamp
                                       )}</span
@@ -573,22 +597,10 @@ dialog::backdrop {
                                       )}</span
                                     >
                                   </small>
-                                  <div class="originalAuther"
-                                    >${
-                                      this.comments.find(
-                                        (c) => c.id === comment.parentId
-                                      )?.text || "Comment"
-                                    }</div
-                                  >
-                                </div>`
-                                    : html``}
-                                </div>
-                                <p class="commentText">${comment.text}</p>
-                                <button
-                                  typ="button"
-                                  id="emojis"
-                                >😀
-                                </button>
+                                  <div class = "textForAi">
+                                  ${comment.text}
+                                  <div>
+                                </p>
                                 <button
                                   type="button"
                                   id="replyBtn"
